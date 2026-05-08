@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# ============================================================
+#  FreeCP — Global Entry Point
+#  Installed at: /usr/local/bin/freecp
+#  Usage: freecp <command> [arguments]
+#  Docs:  https://github.com/rifatxtra/freecp-server
+# ============================================================
+
+set -euo pipefail
+
+FREECP_VERSION="1.0.0"
+FREECP_PATH="/opt/freecp"
+FREECP_LIB="${FREECP_PATH}/lib"
+FREECP_COMMANDS="${FREECP_PATH}/commands"
+
+# ── Root check ────────────────────────────────────────────────
+if [[ $EUID -ne 0 ]]; then
+    echo ""
+    echo "  FreeCP requires root privileges."
+    echo "  Run: sudo freecp $*"
+    echo ""
+    exit 1
+fi
+
+# ── Installation check ────────────────────────────────────────
+if [[ ! -d "$FREECP_PATH" ]]; then
+    echo ""
+    echo "  FreeCP is not installed at ${FREECP_PATH}"
+    echo "  Install: curl -fsSL https://raw.githubusercontent.com/rifatxtra/freecp-server/main/bash/install.sh | bash"
+    echo ""
+    exit 1
+fi
+
+# ── Load core libraries ───────────────────────────────────────
+source "${FREECP_LIB}/colors.sh"
+source "${FREECP_LIB}/output.sh"
+source "${FREECP_LIB}/config.sh"
+source "${FREECP_LIB}/client_state.sh"
+source "${FREECP_LIB}/validate.sh"
+source "${FREECP_LIB}/docker.sh"
+source "${FREECP_LIB}/nginx.sh"
+source "${FREECP_LIB}/supervisor.sh"
+source "${FREECP_LIB}/database.sh"
+
+# ── Load config ───────────────────────────────────────────────
+freecp_load_config
+
+# ── Command router ────────────────────────────────────────────
+COMMAND="${1:-help}"
+shift || true
+
+case "$COMMAND" in
+
+    # ── Server ──────────────────────────────────────────────
+    init-server)           source "${FREECP_COMMANDS}/server/init_server.sh"         && cmd_init_server "$@" ;;
+    setup-smtp)            source "${FREECP_COMMANDS}/server/setup_smtp.sh"           && cmd_setup_smtp "$@" ;;
+    check-server-usage)    source "${FREECP_COMMANDS}/server/check_server_usage.sh"   && cmd_check_server_usage "$@" ;;
+    list-php)              source "${FREECP_COMMANDS}/server/list_php.sh"             && cmd_list_php "$@" ;;
+
+    # ── Client ──────────────────────────────────────────────
+    create-client)         source "${FREECP_COMMANDS}/client/create_client.sh"        && cmd_create_client "$@" ;;
+    delete-client)         source "${FREECP_COMMANDS}/client/delete_client.sh"        && cmd_delete_client "$@" ;;
+    suspend-client)        source "${FREECP_COMMANDS}/client/suspend_client.sh"       && cmd_suspend_client "$@" ;;
+    unsuspend-client)      source "${FREECP_COMMANDS}/client/unsuspend_client.sh"     && cmd_unsuspend_client "$@" ;;
+    upgrade-client)        source "${FREECP_COMMANDS}/client/upgrade_client.sh"       && cmd_upgrade_client "$@" ;;
+    resize-storage)        source "${FREECP_COMMANDS}/client/resize_storage.sh"       && cmd_resize_storage "$@" ;;
+    list-clients)          source "${FREECP_COMMANDS}/client/list_clients.sh"         && cmd_list_clients "$@" ;;
+    status-client)         source "${FREECP_COMMANDS}/client/status_client.sh"        && cmd_status_client "$@" ;;
+    check-usage)           source "${FREECP_COMMANDS}/client/check_usage.sh"          && cmd_check_usage "$@" ;;
+    restart-client)        source "${FREECP_COMMANDS}/client/restart_client.sh"       && cmd_restart_client "$@" ;;
+    rebuild-client)        source "${FREECP_COMMANDS}/client/rebuild_client.sh"       && cmd_rebuild_client "$@" ;;
+    maintenance-client)    source "${FREECP_COMMANDS}/client/maintenance_client.sh"   && cmd_maintenance_client "$@" ;;
+    set-maintenance-page)  source "${FREECP_COMMANDS}/client/set_maintenance_page.sh" && cmd_set_maintenance_page "$@" ;;
+    set-suspend-page)      source "${FREECP_COMMANDS}/client/set_suspend_page.sh"     && cmd_set_suspend_page "$@" ;;
+    set-client-email)      source "${FREECP_COMMANDS}/client/set_client_email.sh"     && cmd_set_client_email "$@" ;;
+    logs-client)           source "${FREECP_COMMANDS}/client/logs_client.sh"          && cmd_logs_client "$@" ;;
+    reset-bandwidth)       source "${FREECP_COMMANDS}/client/reset_bandwidth.sh"      && cmd_reset_bandwidth "$@" ;;
+    backup-client)         source "${FREECP_COMMANDS}/backup/backup_client.sh"        && cmd_backup_client "$@" ;;
+    restore-client)        source "${FREECP_COMMANDS}/backup/restore_client.sh"       && cmd_restore_client "$@" ;;
+    list-backups)          source "${FREECP_COMMANDS}/backup/list_backups.sh"         && cmd_list_backups "$@" ;;
+
+    # ── Domain & SSL ────────────────────────────────────────
+    add-domain)            source "${FREECP_COMMANDS}/domain/add_domain.sh"           && cmd_add_domain "$@" ;;
+    remove-domain)         source "${FREECP_COMMANDS}/domain/remove_domain.sh"        && cmd_remove_domain "$@" ;;
+    list-domains)          source "${FREECP_COMMANDS}/domain/list_domains.sh"         && cmd_list_domains "$@" ;;
+    provision-ssl)         source "${FREECP_COMMANDS}/domain/provision_ssl.sh"        && cmd_provision_ssl "$@" ;;
+    renew-ssl)             source "${FREECP_COMMANDS}/domain/renew_ssl.sh"            && cmd_renew_ssl "$@" ;;
+
+    # ── Database ────────────────────────────────────────────
+    create-db)             source "${FREECP_COMMANDS}/database/create_db.sh"          && cmd_create_db "$@" ;;
+    delete-db)             source "${FREECP_COMMANDS}/database/delete_db.sh"          && cmd_delete_db "$@" ;;
+    list-dbs)              source "${FREECP_COMMANDS}/database/list_dbs.sh"           && cmd_list_dbs "$@" ;;
+
+    # ── PHP ─────────────────────────────────────────────────
+    switch-php)            source "${FREECP_COMMANDS}/php/switch_php.sh"              && cmd_switch_php "$@" ;;
+
+    # ── Redis ───────────────────────────────────────────────
+    flush-redis)           source "${FREECP_COMMANDS}/redis/flush_redis.sh"           && cmd_flush_redis "$@" ;;
+
+    # ── SSH ─────────────────────────────────────────────────
+    read-key)              source "${FREECP_COMMANDS}/ssh/read_key.sh"                && cmd_read_key "$@" ;;
+    regenerate-key)        source "${FREECP_COMMANDS}/ssh/regenerate_key.sh"          && cmd_regenerate_key "$@" ;;
+
+    # ── Env ─────────────────────────────────────────────────
+    update-env)            source "${FREECP_COMMANDS}/env/update_env.sh"              && cmd_update_env "$@" ;;
+    create-env)            source "${FREECP_COMMANDS}/env/create_env.sh"              && cmd_create_env "$@" ;;
+    edit-env)              source "${FREECP_COMMANDS}/env/edit_env.sh"                && cmd_edit_env "$@" ;;
+
+    # ── Backup ──────────────────────────────────────────────
+    setup-backup)          source "${FREECP_COMMANDS}/backup/setup_backup.sh"         && cmd_setup_backup "$@" ;;
+    backup-server)         source "${FREECP_COMMANDS}/backup/backup_server.sh"        && cmd_backup_server "$@" ;;
+    restore-server)        source "${FREECP_COMMANDS}/backup/restore_server.sh"       && cmd_restore_server "$@" ;;
+    list-backups-server)   source "${FREECP_COMMANDS}/backup/list_backups_server.sh"  && cmd_list_backups_server "$@" ;;
+
+    # ── Help & Version ──────────────────────────────────────
+    version|-v|--version)
+        echo "FreeCP v${FREECP_VERSION}"
+        ;;
+    help|-h|--help|*)
+        source "${FREECP_COMMANDS}/help.sh" && cmd_help
+        ;;
+esac

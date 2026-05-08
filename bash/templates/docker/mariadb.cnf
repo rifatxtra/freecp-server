@@ -1,0 +1,30 @@
+# FreeCP — Shared MariaDB Config (2GB container limit)
+
+[mysqld]
+innodb_buffer_pool_size         = 1536M
+innodb_buffer_pool_instances    = 2
+innodb_flush_log_at_trx_commit  = 2
+innodb_flush_method             = O_DIRECT
+innodb_io_capacity              = 400
+innodb_file_per_table           = 1
+innodb_log_file_size            = 256M
+innodb_log_buffer_size          = 64M
+
+max_connections                 = 400
+wait_timeout                    = 300
+interactive_timeout             = 300
+
+query_cache_type                = 1
+query_cache_size                = 64M
+tmp_table_size                  = 64M
+max_heap_table_size             = 64M
+
+character_set_server            = utf8mb4
+collation_server                = utf8mb4_unicode_ci
+skip_name_resolve               = 1
+skip_log_bin                    = 1
+bind_address                    = 0.0.0.0
+
+[mysqldump]
+quick
+max_allowed_packet              = 256M
